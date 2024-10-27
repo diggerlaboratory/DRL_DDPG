@@ -12,7 +12,7 @@ from utils.noise import OrnsteinUhlenbeckActionNoise
 from utils.replay_memory import ReplayMemory, Transition
 from wrappers.normalized_actions import NormalizedActions
 parser = argparse.ArgumentParser()
-parser.add_argument("--env", default="InvertedPendulum-v4", help="the environment on which the agent should be trained (Default: RoboschoolInvertedPendulumSwingup-v1)")
+parser.add_argument("--env", default="InvertedPendulum-v4", help="the environment on which the agent should be trained (Default: InvertedPendulum-v4)")
 parser.add_argument("--render_train", default=False, type=bool, help="Render the training steps (default: False)")
 parser.add_argument("--render_eval", default=False, type=bool, help="Render the evaluation steps (default: False)")
 parser.add_argument("--load_model", default=False, type=bool, help="Load a pretrained model (default: False)")
@@ -28,7 +28,7 @@ parser.add_argument("--hidden_size", nargs=2, default=[512, 256], type=tuple, he
 parser.add_argument("--n_test_cycles", default=30, type=int, help="Num. of episodes in the evaluation phases (default: 10; OpenAI: 20)")
 args = parser.parse_args()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-os.makedirs("./policy_InvertedPendulum/",exist_ok=True)
+os.makedirs(f"./policy_{args.env}/",exist_ok=True)
 if __name__ == "__main__":
     checkpoint_dir = args.save_dir + args.env
     kwargs = dict()
@@ -83,7 +83,7 @@ if __name__ == "__main__":
                 break
         print(f"episode:{episode} epo return: {episode_return}")
         test_rewards = []
-        for _ in range(args.n_test_cycles):
+        for test_count in range(5):
             state = torch.Tensor([env.reset()[0]]).to(device)
             test_reward = 0
             while True:
@@ -94,16 +94,14 @@ if __name__ == "__main__":
                 test_reward += reward
                 next_state = torch.Tensor([next_state]).to(device)
                 state = next_state
+                if test_reward % 10000 ==0:
+                    print(f'episode:{episode} test:{test_count} test reward: {test_reward}')
+                    torch.save(agent.actor.state_dict(),f"./policy_InvertedPendulum/episode_{str(episode).zfill(5)}_test_reward_{test_reward}.pth")
                 if done:
                     break
             test_rewards.append(test_reward)
-        print(f"episode {episode} mean:{np.mean(test_rewards)} test_rewards:{test_rewards}")
+        print(f"episode {episode} mean:{np.mean(test_rewards)} best: {best_policy_test_reward}")
         if np.mean(test_rewards)>best_policy_test_reward:
             best_policy_test_reward = np.mean(test_rewards)
             torch.save(agent.actor.state_dict(),f"./policy_InvertedPendulum/episode_{str(episode).zfill(5)}_{best_policy_test_reward}.pth")
-        
-        for model in natsort.natsorted(glob.glob("./policy_InvertedPendulum/*.pth")[:-5]):
-            print(model)
-            os.remove(model)
-            
     env.close()
