@@ -29,12 +29,12 @@ if __name__ == "__main__":
         torch.backends.cudnn.benchmark = False
 
     kwargs = dict()
-    env = gym.make(args.env, **kwargs)
+    env = gym.make(args.env, render_mode='human')
     env = NormalizedActions(env)
     # Define and build DDPG agent
     hidden_size = tuple(args.hidden_size)
     agent = DDPG(args.gamma, args.tau, hidden_size, env.observation_space.shape[0], env.action_space)
-    agent.actor.load_state_dict(torch.load("./policy_InvertedPendulum/episode_00432_test_reward_10000.0.pth"))
+    agent.actor.load_state_dict(torch.load("./policy_InvertedPendulum/episode_00432_test_reward_10000.0.pth",map_location=torch.device('cpu')))
     state = torch.Tensor([env.reset()[0]]).to(device)
     episode_return = 0
     while True:
@@ -43,4 +43,7 @@ if __name__ == "__main__":
         next_state, reward, done, _,info = env.step(action.cpu().numpy()[0])
         episode_return += reward
         state = torch.Tensor([next_state]).to(device)
+        env.render()
         print(episode_return)
+        if done:
+            break
