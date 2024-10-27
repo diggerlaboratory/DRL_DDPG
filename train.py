@@ -3,11 +3,10 @@ import logging
 import os
 import random
 import time
-
+import glob,natsort,shutil
 import gym
 import numpy as np
 import torch,os
-from torch.utils.tensorboard import SummaryWriter
 from ddpg import DDPG
 from utils.noise import OrnsteinUhlenbeckActionNoise
 from utils.replay_memory import ReplayMemory, Transition
@@ -29,7 +28,7 @@ parser.add_argument("--hidden_size", nargs=2, default=[512, 256], type=tuple, he
 parser.add_argument("--n_test_cycles", default=30, type=int, help="Num. of episodes in the evaluation phases (default: 10; OpenAI: 20)")
 args = parser.parse_args()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-os.makedirs("./policy/",exist_ok=True)
+os.makedirs("./policy_InvertedPendulum/",exist_ok=True)
 if __name__ == "__main__":
     checkpoint_dir = args.save_dir + args.env
     kwargs = dict()
@@ -83,8 +82,6 @@ if __name__ == "__main__":
             if done:
                 break
         print(f"episode:{episode} epo return: {episode_return}")
-
-
         test_rewards = []
         for _ in range(args.n_test_cycles):
             state = torch.Tensor([env.reset()[0]]).to(device)
@@ -103,6 +100,10 @@ if __name__ == "__main__":
         print(f"episode {episode} mean:{np.mean(test_rewards)} test_rewards:{test_rewards}")
         if np.mean(test_rewards)>best_policy_test_reward:
             best_policy_test_reward = np.mean(test_rewards)
-            torch.save(agent.actor.state_dict(),f"./policy/episode_{str(episode).zfill(5)}_{best_policy_test_reward}.pth")
+            torch.save(agent.actor.state_dict(),f"./policy_InvertedPendulum/episode_{str(episode).zfill(5)}_{best_policy_test_reward}.pth")
+        
+        for model in natsort.natsorted(glob.glob("./policy_InvertedPendulum/*.pth")[:-5]):
+            print(model)
+            os.remove(model)
             
     env.close()
