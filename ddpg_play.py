@@ -34,7 +34,7 @@ if __name__ == "__main__":
     # Define and build DDPG agent
     hidden_size = tuple(args.hidden_size)
     agent = DDPG(args.gamma, args.tau, hidden_size, env.observation_space.shape[0], env.action_space)
-    agent.actor.load_state_dict(torch.load("/home/ssu20/DRL_DDPG/DRL_DDPG/policy_InvertedPendulum/episode_00432_test_reward_10000.0.pth"))
+    agent.actor.load_state_dict(torch.load("./policy_InvertedPendulum/episode_00432_test_reward_10000.0.pth"))
     state = torch.Tensor([env.reset()[0]]).to(device)
     episode_return = 0
     while True:
