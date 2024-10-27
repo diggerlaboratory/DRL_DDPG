@@ -6,35 +6,36 @@ import time
 
 import gym
 import numpy as np
-import torch
+import torch,os
 from torch.utils.tensorboard import SummaryWriter
 from ddpg import DDPG
 from utils.noise import OrnsteinUhlenbeckActionNoise
 from utils.replay_memory import ReplayMemory, Transition
 from wrappers.normalized_actions import NormalizedActions
 parser = argparse.ArgumentParser()
-parser.add_argument("--env", default="xInvertedPendulum-v4", help="the environment on which the agent should be trained (Default: RoboschoolInvertedPendulumSwingup-v1)")
+parser.add_argument("--env", default="InvertedPendulum-v4", help="the environment on which the agent should be trained (Default: RoboschoolInvertedPendulumSwingup-v1)")
 parser.add_argument("--render_train", default=False, type=bool, help="Render the training steps (default: False)")
 parser.add_argument("--render_eval", default=False, type=bool, help="Render the evaluation steps (default: False)")
 parser.add_argument("--load_model", default=False, type=bool, help="Load a pretrained model (default: False)")
 parser.add_argument("--save_dir", default="./saved_models/", help="Dir. path to save and load a model (default: ./saved_models/)")
 parser.add_argument("--seed", default=0, type=int, help="Random seed (default: 0)")
-parser.add_argument("--timesteps", default=1e6, type=int, help="Num. of total timesteps of training (default: 1e6)")
+parser.add_argument("--episodes", default=1e6, type=int, help="Num. of total timesteps of training (default: 1e6)")
 parser.add_argument("--batch_size", default=64, type=int, help="Batch size (default: 64; OpenAI: 128)")
 parser.add_argument("--replay_size", default=1e6, type=int, help="Size of the replay buffer (default: 1e6; OpenAI: 1e5)")
 parser.add_argument("--gamma", default=0.99, help="Discount factor (default: 0.99)")
 parser.add_argument("--tau", default=0.001, help="Update factor for the soft update of the target networks (default: 0.001)")
 parser.add_argument("--noise_stddev", default=0.2, type=int, help="Standard deviation of the OU-Noise (default: 0.2)")
-parser.add_argument("--hidden_size", nargs=2, default=[400, 300], type=tuple, help="Num. of units of the hidden layers (default: [400, 300]; OpenAI: [64, 64])")
-parser.add_argument("--n_test_cycles", default=10, type=int, help="Num. of episodes in the evaluation phases (default: 10; OpenAI: 20)")
+parser.add_argument("--hidden_size", nargs=2, default=[512, 256], type=tuple, help="Num. of units of the hidden layers (default: [400, 300]; OpenAI: [64, 64])")
+parser.add_argument("--n_test_cycles", default=30, type=int, help="Num. of episodes in the evaluation phases (default: 10; OpenAI: 20)")
 args = parser.parse_args()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+os.makedirs("./policy/",exist_ok=True)
 if __name__ == "__main__":
     checkpoint_dir = args.save_dir + args.env
     kwargs = dict()
     env = gym.make(f"{args.env}", **kwargs)
     env = NormalizedActions(env)
-    reward_threshold = gym.spec(args.env).reward_threshold if gym.spec(args.env).reward_threshold is not None else np.inf
+    # reward_threshold = gym.spec(args.env).reward_threshold if gym.spec(args.env).reward_threshold is not None else np.inf
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     random.seed(args.seed)
@@ -52,41 +53,26 @@ if __name__ == "__main__":
     # Initialize OU-Noise
     nb_actions = env.action_space.shape[-1]
     ou_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(nb_actions), sigma=float(args.noise_stddev) * np.ones(nb_actions))
-    # Define counters and other variables
     start_step = 0
-    # timestep = start_step
-    if args.load_model:
-        # Load agent if necessary
-        start_step, memory = agent.load_checkpoint()
-    timestep = start_step // 10000 + 1
-    rewards, policy_losses, value_losses, mean_test_rewards = [], [], [], []
-    epoch = 0
-    t = 0
     time_last_checkpoint = time.time()
-
-    while timestep <= args.timesteps:
+    best_policy_test_reward = 0
+    for episode in range(int(args.episodes)):
         ou_noise.reset()
-        epoch_return = 0
+        episode_return = 0
         state = torch.Tensor([env.reset()[0]]).to(device)
         while True:
             if args.render_train:
                 env.render()
             action = agent.calc_action(state, ou_noise)
             next_state, reward, done, _,info = env.step(action.cpu().numpy()[0])
-            timestep += 1
-            epoch_return += reward
-
+            episode_return += reward
             mask = torch.Tensor([done]).to(device)
             reward = torch.Tensor([reward]).to(device)
             next_state = torch.Tensor([next_state]).to(device)
-
             memory.push(state, action, mask, next_state, reward)
-
             state = next_state
-
             epoch_value_loss = 0
             epoch_policy_loss = 0
-
             if len(memory) > args.batch_size:
                 transitions = memory.sample(args.batch_size)
                 batch = Transition(*zip(*transitions))
@@ -94,35 +80,29 @@ if __name__ == "__main__":
 
                 epoch_value_loss += value_loss
                 epoch_policy_loss += policy_loss
-            if timestep %20 ==0:
-                print(f"timestep:{timestep} epo return: {epoch_return}")
             if done:
                 break
-        rewards.append(epoch_return)
-        value_losses.append(epoch_value_loss)
-        policy_losses.append(epoch_policy_loss)
-        if timestep >= 10000 * t:
-            t += 1
-            test_rewards = []
-            for _ in range(args.n_test_cycles):
-                state = torch.Tensor([env.reset()[0]]).to(device)
-                test_reward = 0
-                while True:
-                    if args.render_eval:
-                        env.render()
-                    action = agent.calc_action(state)  # Selection without noise
-                    next_state, reward, done, _ = env.step(action.cpu().numpy()[0])[0]
-                    test_reward += reward
-                    next_state = torch.Tensor([next_state]).to(device)
-                    state = next_state
-                    if done:
-                        break
-                test_rewards.append(test_reward)
-            mean_test_rewards.append(np.mean(test_rewards))
-            if np.mean(mean_test_rewards[-3:]) >= reward_threshold:
-                agent.save_checkpoint(timestep, memory)
-                time_last_checkpoint = time.time()
-        epoch += 1
+        print(f"episode:{episode} epo return: {episode_return}")
 
-    agent.save_checkpoint(timestep, memory)
+
+        test_rewards = []
+        for _ in range(args.n_test_cycles):
+            state = torch.Tensor([env.reset()[0]]).to(device)
+            test_reward = 0
+            while True:
+                if args.render_eval:
+                    env.render()
+                action = agent.calc_action(state)  # Selection without noise
+                next_state, reward, done, _,info = env.step(action.cpu().numpy()[0])
+                test_reward += reward
+                next_state = torch.Tensor([next_state]).to(device)
+                state = next_state
+                if done:
+                    break
+            test_rewards.append(test_reward)
+        print(f"episode {episode} mean:{np.mean(test_rewards)} test_rewards:{test_rewards}")
+        if np.mean(test_rewards)>best_policy_test_reward:
+            best_policy_test_reward = np.mean(test_rewards)
+            torch.save(agent.actor.state_dict(),f"./policy/episode_{str(episode).zfill(5)}_{best_policy_test_reward}.pth")
+            
     env.close()
