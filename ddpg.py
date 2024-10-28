@@ -105,7 +105,6 @@ class DDPG(object):
         next_state_batch = torch.cat(batch.next_state).to(device)
 
         next_action_batch = self.actor_target(next_state_batch)
-
         next_state_action_values = self.critic_target(next_state_batch, next_action_batch.detach())
 
         reward_batch = reward_batch.unsqueeze(1)

@@ -28,22 +28,30 @@ class Actor(nn.Module):
         self.linear1 = nn.Linear(num_inputs, hidden_size[0])
         self.ln1 = nn.LayerNorm(hidden_size[0])
 
-        # Layer 2
         self.linear2 = nn.Linear(hidden_size[0], hidden_size[1])
         self.ln2 = nn.LayerNorm(hidden_size[1])
 
+        self.linear3 = nn.Linear(hidden_size[1], hidden_size[2])
+        self.ln3 = nn.LayerNorm(hidden_size[2])
+
+        self.linear4 = nn.Linear(hidden_size[2], hidden_size[3])
+        self.ln4 = nn.LayerNorm(hidden_size[3])
+
+        self.linear5 = nn.Linear(hidden_size[3], hidden_size[4])
+        self.ln5 = nn.LayerNorm(hidden_size[4])
+        
         # Output Layer
-        self.mu = nn.Linear(hidden_size[1], num_outputs)
+        self.out = nn.Linear(hidden_size[4], num_outputs)
 
-        # Weight Init
-        fan_in_uniform_init(self.linear1.weight)
-        fan_in_uniform_init(self.linear1.bias)
+        # # Weight Init
+        # fan_in_uniform_init(self.linear1.weight)
+        # fan_in_uniform_init(self.linear1.bias)
 
-        fan_in_uniform_init(self.linear2.weight)
-        fan_in_uniform_init(self.linear2.bias)
+        # fan_in_uniform_init(self.linear2.weight)
+        # fan_in_uniform_init(self.linear2.bias)
 
-        nn.init.uniform_(self.mu.weight, -WEIGHTS_FINAL_INIT, WEIGHTS_FINAL_INIT)
-        nn.init.uniform_(self.mu.bias, -BIAS_FINAL_INIT, BIAS_FINAL_INIT)
+        # nn.init.uniform_(self.out.weight, -WEIGHTS_FINAL_INIT, WEIGHTS_FINAL_INIT)
+        # nn.init.uniform_(self.out.bias, -BIAS_FINAL_INIT, BIAS_FINAL_INIT)
 
     def forward(self, inputs):
         x = inputs
@@ -57,9 +65,22 @@ class Actor(nn.Module):
         x = self.ln2(x)
         x = F.relu(x)
 
+        # Layer 2
+        x = self.linear3(x)
+        x = self.ln3(x)
+        x = F.relu(x)
+        # Layer 2
+        x = self.linear4(x)
+        x = self.ln4(x)
+        x = F.relu(x)
+        # Layer 2
+        x = self.linear5(x)
+        x = self.ln5(x)
+        x = F.relu(x)
+
         # Output
-        mu = torch.tanh(self.mu(x))
-        return mu
+        out = torch.tanh(self.out(x))
+        return out
 
 
 class Critic(nn.Module):
@@ -72,23 +93,35 @@ class Critic(nn.Module):
         self.linear1 = nn.Linear(num_inputs, hidden_size[0])
         self.ln1 = nn.LayerNorm(hidden_size[0])
 
-        # Layer 2
-        # In the second layer the actions will be inserted also 
-        self.linear2 = nn.Linear(hidden_size[0] + num_outputs, hidden_size[1])
+        # Layer 1
+        self.linear2 = nn.Linear(hidden_size[0], hidden_size[1])
         self.ln2 = nn.LayerNorm(hidden_size[1])
 
+        # Layer 2
+        self.linear3 = nn.Linear(hidden_size[1], hidden_size[2])
+        self.ln3 = nn.LayerNorm(hidden_size[2])
+        # Layer 3
+        self.linear4 = nn.Linear(hidden_size[2] + num_outputs, hidden_size[3])
+        self.ln4 = nn.LayerNorm(hidden_size[3])
+
+        # Layer 4
+        self.linear5 = nn.Linear(hidden_size[3], hidden_size[4])
+        self.ln5 = nn.LayerNorm(hidden_size[4])
+
+
+
         # Output layer (single value)
-        self.V = nn.Linear(hidden_size[1], 1)
+        self.V = nn.Linear(hidden_size[4], 1)
 
         # Weight Init
-        fan_in_uniform_init(self.linear1.weight)
-        fan_in_uniform_init(self.linear1.bias)
+        # fan_in_uniform_init(self.linear1.weight)
+        # fan_in_uniform_init(self.linear1.bias)
 
-        fan_in_uniform_init(self.linear2.weight)
-        fan_in_uniform_init(self.linear2.bias)
+        # fan_in_uniform_init(self.linear2.weight)
+        # fan_in_uniform_init(self.linear2.bias)
 
-        nn.init.uniform_(self.V.weight, -WEIGHTS_FINAL_INIT, WEIGHTS_FINAL_INIT)
-        nn.init.uniform_(self.V.bias, -BIAS_FINAL_INIT, BIAS_FINAL_INIT)
+        # nn.init.uniform_(self.V.weight, -WEIGHTS_FINAL_INIT, WEIGHTS_FINAL_INIT)
+        # nn.init.uniform_(self.V.bias, -BIAS_FINAL_INIT, BIAS_FINAL_INIT)
 
     def forward(self, inputs, actions):
         x = inputs
@@ -98,11 +131,25 @@ class Critic(nn.Module):
         x = F.relu(x)
 
         # Layer 2
-        x = torch.cat((x, actions), 1)  # Insert the actions
         x = self.linear2(x)
         x = self.ln2(x)
         x = F.relu(x)
 
+        # Layer 3
+        x = self.linear3(x)
+        x = self.ln3(x)
+        x = F.relu(x)
+        
+        # Layer 4
+        x = torch.cat((x, actions), 1)  # Insert the actions
+        x = self.linear4(x)
+        x = self.ln4(x)
+        x = F.relu(x)
+        
+        # Layer 5
+        x = self.linear5(x)
+        x = self.ln5(x)
+        x = F.relu(x)
         # Output
         V = self.V(x)
         return V
