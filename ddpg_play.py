@@ -12,8 +12,8 @@ from utils.noise import OrnsteinUhlenbeckActionNoise
 from utils.replay_memory import ReplayMemory, Transition
 from wrappers.normalized_actions import NormalizedActions
 parser = argparse.ArgumentParser()
-envs = ["Humanoid-v4","HumanoidStandup-v4","MountainCarContinuous-v0","Reacher-v4"]
-parser.add_argument("--env", default=envs[0], help="the environment on which the agent should be trained (Default: InvertedPendulum-v4)")
+envs = ["Humanoid-v4","HumanoidStandup-v4","MountainCarContinuous-v0","Reacher-v4","Hopper-v4"]
+parser.add_argument("--env", default=envs[4], help="the environment on which the agent should be trained (Default: InvertedPendulum-v4)")
 parser.add_argument("--seed", default=0, type=int, help="Random seed (default: 0)")
 parser.add_argument("--hidden_size", nargs=2, default=[256,256,128,128,64], type=tuple, help="Num. of units of the hidden layers (default: [400, 300]; OpenAI: [64, 64])")
 parser.add_argument("--gamma", default=0.99, help="Discount factor (default: 0.99)")
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     # Define and build DDPG agent
     hidden_size = tuple(args.hidden_size)
     agent = DDPG(gamma=args.gamma, tau=args.tau, hidden_size=hidden_size, num_inputs=env.observation_space.shape[0], action_space=env.action_space)
-    agent.actor.load_state_dict(torch.load("./policy_Humanoid-v4/best.pth",map_location=torch.device(device)))
+    agent.actor.load_state_dict(torch.load(f"./policy_{args.env}/best.pth",map_location=torch.device(device)))
     
     state = torch.Tensor([env.reset()[0]]).to(device)
     episode_return = 0
