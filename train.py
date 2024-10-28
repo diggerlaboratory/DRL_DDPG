@@ -24,15 +24,15 @@ parser.add_argument("--replay_size", default=1e6, type=int, help="Size of the re
 parser.add_argument("--gamma", default=0.99, help="Discount factor (default: 0.99)")
 parser.add_argument("--tau", default=0.001, help="Update factor for the soft update of the target networks (default: 0.001)")
 parser.add_argument("--noise_stddev", default=0.2, type=int, help="Standard deviation of the OU-Noise (default: 0.2)")
-parser.add_argument("--hidden_size", nargs=2, default=[512, 256], type=tuple, help="Num. of units of the hidden layers (default: [400, 300]; OpenAI: [64, 64])")
+parser.add_argument("--hidden_size", nargs=2, default=[512,,512,256,256,128,128,64], type=tuple, help="Num. of units of the hidden layers (default: [400, 300]; OpenAI: [64, 64])")
 parser.add_argument("--n_test_cycles", default=30, type=int, help="Num. of episodes in the evaluation phases (default: 10; OpenAI: 20)")
 args = parser.parse_args()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.makedirs(f"./policy_{args.env}/",exist_ok=True)
 if __name__ == "__main__":
     checkpoint_dir = args.save_dir + args.env
-    kwargs = dict()
-    env = gym.make(f"{args.env}", **kwargs)
+    kwargs = dict(exclude_current_positions_from_observation=False)
+    env = gym.make("Humanoid-v4")
     env = NormalizedActions(env)
     # reward_threshold = gym.spec(args.env).reward_threshold if gym.spec(args.env).reward_threshold is not None else np.inf
     torch.manual_seed(args.seed)
@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     # Define and build DDPG agent
     hidden_size = tuple(args.hidden_size)
-    agent = DDPG(args.gamma, args.tau, hidden_size, env.observation_space.shape[0], env.action_space, checkpoint_dir=checkpoint_dir)
+    agent = DDPG(gamma=args.gamma, tau=args.tau, hidden_size=hidden_size, num_inputs=env.observation_space.shape[0], action_space=env.action_space, checkpoint_dir=checkpoint_dir)
     memory = ReplayMemory(int(args.replay_size))
 
     # Initialize OU-Noise
@@ -64,6 +64,8 @@ if __name__ == "__main__":
                 env.render()
             action = agent.calc_action(state, ou_noise)
             next_state, reward, done, _,info = env.step(action.cpu().numpy()[0])
+            print(env.step(action.cpu().numpy()[0]))
+            print(reward)
             episode_return += reward
             mask = torch.Tensor([done]).to(device)
             reward = torch.Tensor([reward]).to(device)
@@ -82,6 +84,7 @@ if __name__ == "__main__":
             if done:
                 break
         print(f"episode:{episode} epo return: {episode_return}")
+        input()
         test_rewards = []
         for test_count in range(5):
             state = torch.Tensor([env.reset()[0]]).to(device)

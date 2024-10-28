@@ -58,12 +58,8 @@ class DDPG(object):
         self.critic_target = Critic(hidden_size, num_inputs, self.action_space).to(device)
 
         # Define the optimizers for both networks
-        self.actor_optimizer = Adam(self.actor.parameters(),
-                                    lr=1e-4)  # optimizer for the actor network
-        self.critic_optimizer = Adam(self.critic.parameters(),
-                                     lr=1e-3,
-                                     weight_decay=1e-2
-                                     )  # optimizer for the critic network
+        self.actor_optimizer = Adam(self.actor.parameters(), lr=1e-4)  # optimizer for the actor network
+        self.critic_optimizer = Adam(self.critic.parameters(), lr=1e-3, weight_decay=1e-2 )  # optimizer for the critic network
 
         # Make sure both targets are with the same weight
         hard_update(self.actor_target, self.actor)
@@ -78,31 +74,16 @@ class DDPG(object):
         logger.info('Saving all checkpoints to {}'.format(self.checkpoint_dir))
 
     def calc_action(self, state, action_noise=None):
-        """
-        Evaluates the action to perform in a given state
-
-        Arguments:
-            state:          State to perform the action on in the env. 
-                            Used to evaluate the action.
-            action_noise:   If not None, the noise to apply on the evaluated action
-        """
         x = state.to(device)
-
-        # Get the continous action value to perform in the env
         self.actor.eval()  # Sets the actor in evaluation mode
-        mu = self.actor(x)
+        act = self.actor(x)
         self.actor.train()  # Sets the actor in training mode
-        mu = mu.data
-
-        # During training we add noise for exploration
+        act = act.data
         if action_noise is not None:
             noise = torch.Tensor(action_noise.noise()).to(device)
-            mu += noise
-
-        # Clip the output according to the action space of the env
-        mu = mu.clamp(self.action_space.low[0], self.action_space.high[0])
-
-        return mu
+            act += noise
+        act = act.clamp(self.action_space.low[0], self.action_space.high[0])
+        return act
 
     def update_params(self, batch):
         """
@@ -122,20 +103,15 @@ class DDPG(object):
         reward_batch = torch.cat(batch.reward).to(device)
         done_batch = torch.cat(batch.done).to(device)
         next_state_batch = torch.cat(batch.next_state).to(device)
-        # Get the actions and the state values to compute the targets
+
         next_action_batch = self.actor_target(next_state_batch)
 
         next_state_action_values = self.critic_target(next_state_batch, next_action_batch.detach())
 
-        # Compute the target
         reward_batch = reward_batch.unsqueeze(1)
         done_batch = done_batch.unsqueeze(1)
         expected_values = reward_batch + (1.0 - done_batch) * self.gamma * next_state_action_values
 
-        # TODO: Clipping the expected values here?
-        # expected_value = torch.clamp(expected_value, min_value, max_value)
-
-        # Update the critic network
         self.critic_optimizer.zero_grad()
         state_action_batch = self.critic(state_batch, action_batch)
         value_loss = F.mse_loss(state_action_batch, expected_values.detach())
@@ -156,13 +132,6 @@ class DDPG(object):
         return value_loss.item(), policy_loss.item()
 
     def save_checkpoint(self, last_timestep, replay_buffer):
-        """
-        Saving the networks and all parameters to a file in 'checkpoint_dir'
-
-        Arguments:
-            last_timestep:  Last timestep in training before saving
-            replay_buffer:  Current replay buffer
-        """
         checkpoint_name = self.checkpoint_dir + '/ep_{}.pth.tar'.format(last_timestep)
         logger.info('Saving checkpoint...')
         checkpoint = {
@@ -188,14 +157,7 @@ class DDPG(object):
         return os.path.abspath(last_file)
 
     def load_checkpoint(self, checkpoint_path=None):
-        """
-        Saving the networks and all parameters from a given path. If the given path is None
-        then the latest saved file in 'checkpoint_dir' will be used.
-
-        Arguments:
-            checkpoint_path:    File to load the model from
-
-        """
+        
 
         if checkpoint_path is None:
             checkpoint_path = self.get_path_of_latest_file()
