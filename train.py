@@ -12,7 +12,7 @@ from utils.noise import OrnsteinUhlenbeckActionNoise
 from utils.replay_memory import ReplayMemory, Transition
 from wrappers.normalized_actions import NormalizedActions
 parser = argparse.ArgumentParser()
-parser.add_argument("--env", default="Reacher-v4", help="the environment on which the agent should be trained (Default: InvertedPendulum-v4)")
+parser.add_argument("--env", default="Humanoid-v4", help="the environment on which the agent should be trained (Default: InvertedPendulum-v4)")
 parser.add_argument("--render_train", default=False, type=bool, help="Render the training steps (default: False)")
 parser.add_argument("--render_eval", default=False, type=bool, help="Render the evaluation steps (default: False)")
 parser.add_argument("--load_model", default=False, type=bool, help="Load a pretrained model (default: False)")
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     checkpoint_dir = args.save_dir + args.env
     kwargs = dict(exclude_current_positions_from_observation=False)
     env = gym.make(f"{args.env}")
-    env = NormalizedActions(env)
+    # env = NormalizedActions(env)
     # reward_threshold = gym.spec(args.env).reward_threshold if gym.spec(args.env).reward_threshold is not None else np.inf
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     ou_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(nb_actions), sigma=float(args.noise_stddev) * np.ones(nb_actions))
     start_step = 0
     time_last_checkpoint = time.time()
-    best_policy_test_reward = 0
+    best_policy_test_reward = -1000000000
     for episode in range(int(args.episodes)):
         ou_noise.reset()
         episode_return = 0
@@ -79,7 +79,7 @@ if __name__ == "__main__":
 
                 epoch_value_loss += value_loss
                 epoch_policy_loss += policy_loss
-            if done:
+            if done or _:
                 break
         test_rewards = []
         for test_count in range(5):
@@ -96,7 +96,7 @@ if __name__ == "__main__":
                 if test_reward % 10000 ==0:
                     print(f'episode:{episode} test:{test_count} test reward: {test_reward}')
                     torch.save(agent.actor.state_dict(),f"./policy_{args.env}/episode_{str(episode).zfill(5)}_test_reward_{test_reward}.pth")
-                if done:
+                if done or _:
                     break
             test_rewards.append(test_reward)
         print(f"episode {episode} mean:{np.mean(test_rewards)} best: {best_policy_test_reward}")
