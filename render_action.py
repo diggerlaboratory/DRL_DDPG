@@ -19,7 +19,8 @@ def move_joint(joint_index, strength=0.5, steps=100):
     for _ in range(steps):
         env.step(action)
         env.render()
-        time.sleep(0.01)  # 속도를 조절하기 위해 잠시 대기
+        print(_)
+        time.sleep(1)  # 속도를 조절하기 위해 잠시 대기
 
 # 개별 관절 움직여 보기
 for joint in range(num_joints):
