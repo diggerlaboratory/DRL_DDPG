@@ -12,7 +12,7 @@ from utils.noise import OrnsteinUhlenbeckActionNoise
 from utils.replay_memory import ReplayMemory, Transition
 from wrappers.normalized_actions import NormalizedActions
 parser = argparse.ArgumentParser()
-parser.add_argument("--env", default="Hopper-v4", help="the environment on which the agent should be trained (Default: InvertedPendulum-v4)")
+parser.add_argument("--env", default="Reacher-v4", help="the environment on which the agent should be trained (Default: InvertedPendulum-v4)")
 parser.add_argument("--render_train", default=False, type=bool, help="Render the training steps (default: False)")
 parser.add_argument("--render_eval", default=False, type=bool, help="Render the evaluation steps (default: False)")
 parser.add_argument("--load_model", default=False, type=bool, help="Load a pretrained model (default: False)")
@@ -32,7 +32,7 @@ os.makedirs(f"./policy_{args.env}/",exist_ok=True)
 if __name__ == "__main__":
     checkpoint_dir = args.save_dir + args.env
     kwargs = dict(exclude_current_positions_from_observation=False)
-    env = gym.make("Humanoid-v4")
+    env = gym.make(f"{args.env}")
     env = NormalizedActions(env)
     # reward_threshold = gym.spec(args.env).reward_threshold if gym.spec(args.env).reward_threshold is not None else np.inf
     torch.manual_seed(args.seed)
