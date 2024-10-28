@@ -12,9 +12,9 @@ from utils.noise import OrnsteinUhlenbeckActionNoise
 from utils.replay_memory import ReplayMemory, Transition
 from wrappers.normalized_actions import NormalizedActions
 parser = argparse.ArgumentParser()
-envs = ["Humanoid-v4","HumanoidStandup-v4","MountainCarContinuous-v0","Reacher-v4","Hopper-v4"]
+envs = ["Humanoid-v4","HumanoidStandup-v4","MountainCarContinuous-v0","Reacher-v4","Hopper-v4","InvertedDoublePendulum-v4","Walker2d-v4"]
 os.environ['CUDA_VISIBLE_DEVICES'] = '2' 
-parser.add_argument("--env", default=envs[0], help="the environment on which the agent should be trained (Default: InvertedPendulum-v4)")
+parser.add_argument("--env", default=envs[6], help="the environment on which the agent should be trained (Default: InvertedPendulum-v4)")
 parser.add_argument("--render_train", default=False, type=bool, help="Render the training steps (default: False)")
 parser.add_argument("--render_eval", default=False, type=bool, help="Render the evaluation steps (default: False)")
 parser.add_argument("--load_model", default=False, type=bool, help="Load a pretrained model (default: False)")
@@ -29,9 +29,10 @@ parser.add_argument("--noise_stddev", default=0.2, type=int, help="Standard devi
 parser.add_argument("--hidden_size", nargs=2, default=[256,256,128,128,64], type=tuple, help="Num. of units of the hidden layers (default: [400, 300]; OpenAI: [64, 64])")
 parser.add_argument("--n_test_cycles", default=30, type=int, help="Num. of episodes in the evaluation phases (default: 10; OpenAI: 20)")
 args = parser.parse_args()
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.makedirs(f"./policy_{args.env}/",exist_ok=True)
 if __name__ == "__main__":
+    print(os.getpid())
     checkpoint_dir = args.save_dir + args.env
     kwargs = dict(exclude_current_positions_from_observation=False)
     env = gym.make(f"{args.env}")
