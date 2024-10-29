@@ -30,8 +30,8 @@ if __name__ == "__main__":
         torch.backends.cudnn.benchmark = False
 
     kwargs = dict()
-    # env = gym.make(args.env, render_mode='human')
-    env = gym.make(args.env)
+    env = gym.make(args.env, render_mode='human')
+    # env = gym.make(args.env)
     # Define and build DDPG agent
     hidden_size = tuple(args.hidden_size)
     agent = DDPG(gamma=args.gamma, tau=args.tau, hidden_size=hidden_size, num_inputs=env.observation_space.shape[0], action_space=env.action_space)

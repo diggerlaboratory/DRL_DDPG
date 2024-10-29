@@ -12,9 +12,10 @@ from utils.noise import OrnsteinUhlenbeckActionNoise
 from utils.replay_memory import ReplayMemory, Transition
 from wrappers.normalized_actions import NormalizedActions
 parser = argparse.ArgumentParser()
-envs = ["Humanoid-v4","HumanoidStandup-v4","MountainCarContinuous-v0","Reacher-v4","Hopper-v4","InvertedDoublePendulum-v4","Walker2d-v4"]
+# gym.make("Pendulum-v1")
+envs = ["Humanoid-v4","HumanoidStandup-v4","MountainCarContinuous-v0","Reacher-v4","Hopper-v4","InvertedDoublePendulum-v4","Walker2d-v4","CarRacing-v2","Pendulum-v1"]
 os.environ['CUDA_VISIBLE_DEVICES'] = '2' 
-parser.add_argument("--env", default=envs[6], help="the environment on which the agent should be trained (Default: InvertedPendulum-v4)")
+parser.add_argument("--env", default=envs[8], help="the environment on which the agent should be trained (Default: InvertedPendulum-v4)")
 parser.add_argument("--render_train", default=False, type=bool, help="Render the training steps (default: False)")
 parser.add_argument("--render_eval", default=False, type=bool, help="Render the evaluation steps (default: False)")
 parser.add_argument("--load_model", default=False, type=bool, help="Load a pretrained model (default: False)")
