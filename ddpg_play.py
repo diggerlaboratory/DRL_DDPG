@@ -46,6 +46,5 @@ if __name__ == "__main__":
         episode_return += reward
         state = torch.Tensor([next_state]).to(device)
         env.render()
-        print(episode_return)
         if done:
             break
