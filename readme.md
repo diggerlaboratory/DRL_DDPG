@@ -1,5 +1,5 @@
 ## 0. 코드를 저장소로붙터 가져오기
-git clone 
+git clone https://github.com/diggerlaboratory/DRL_DDPG.git
 
 
 ## 1. 가상 환경 생성 및 활성화
