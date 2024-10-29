@@ -12,7 +12,7 @@ from utils.noise import OrnsteinUhlenbeckActionNoise
 from utils.replay_memory import ReplayMemory, Transition
 from wrappers.normalized_actions import NormalizedActions
 parser = argparse.ArgumentParser()
-envs = ["Humanoid-v4","HumanoidStandup-v4","MountainCarContinuous-v0","Reacher-v4","Hopper-v4","InvertedDoublePendulum-v4","Walker2d-v4","CarRacing-v2","Pendulum-v1"]
+envs = ["Hopper-v4","InvertedDoublePendulum-v4","Walker2d-v4","Pendulum-v1"]
 parser.add_argument("--env", default=envs[4], help="the environment on which the agent should be trained (Default: InvertedPendulum-v4)")
 parser.add_argument("--seed", default=0, type=int, help="Random seed (default: 0)")
 parser.add_argument("--hidden_size", nargs=2, default=[256,256,128,128,64], type=tuple, help="Num. of units of the hidden layers (default: [400, 300]; OpenAI: [64, 64])")
