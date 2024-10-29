@@ -12,10 +12,9 @@ from utils.noise import OrnsteinUhlenbeckActionNoise
 from utils.replay_memory import ReplayMemory, Transition
 from wrappers.normalized_actions import NormalizedActions
 parser = argparse.ArgumentParser()
-# gym.make("Pendulum-v1")
-envs = ["Humanoid-v4","HumanoidStandup-v4","MountainCarContinuous-v0","Reacher-v4","Hopper-v4","InvertedDoublePendulum-v4","Walker2d-v4","CarRacing-v2","Pendulum-v1"]
+envs = ["Hopper-v4","InvertedDoublePendulum-v4","Walker2d-v4","Pendulum-v1"]
 os.environ['CUDA_VISIBLE_DEVICES'] = '2' 
-parser.add_argument("--env", default=envs[8], help="the environment on which the agent should be trained (Default: InvertedPendulum-v4)")
+parser.add_argument("--env", default=envs[0], help="the environment on which the agent should be trained (Default: InvertedPendulum-v4)")
 parser.add_argument("--render_train", default=False, type=bool, help="Render the training steps (default: False)")
 parser.add_argument("--render_eval", default=False, type=bool, help="Render the evaluation steps (default: False)")
 parser.add_argument("--load_model", default=False, type=bool, help="Load a pretrained model (default: False)")
@@ -99,13 +98,13 @@ if __name__ == "__main__":
                 state = next_state
                 if test_reward % 10000 ==0:
                     print(f'episode:{episode} test:{test_count} test reward: {test_reward}')
-                    torch.save(agent.actor.state_dict(),f"./policy_{args.env}/episode_{str(episode).zfill(5)}_test_reward_{test_reward}.pth")
+                    # torch.save(agent.actor.state_dict(),f"./policy_{args.env}/episode_{str(episode).zfill(5)}_test_reward_{test_reward}.pth")
                 if done or _:
                     break
             test_rewards.append(test_reward)
         print(f"episode {episode} mean:{np.mean(test_rewards)} best: {best_policy_test_reward}")
         if np.mean(test_rewards)>best_policy_test_reward:
             best_policy_test_reward = np.mean(test_rewards)
-            torch.save(agent.actor.state_dict(),f"./policy_{args.env}/episode_{str(episode).zfill(5)}_{best_policy_test_reward}.pth")
-            torch.save(agent.actor.state_dict(),f"./policy_{args.env}/best.pth")
+            # torch.save(agent.actor.state_dict(),f"./policy_{args.env}/episode_{str(episode).zfill(5)}_{best_policy_test_reward}.pth")
+            # torch.save(agent.actor.state_dict(),f"./policy_{args.env}/best.pth")
     env.close()
